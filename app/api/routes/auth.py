@@ -197,8 +197,17 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
 
 
 @router.get("/google/login", tags=["Google SSO"])
-async def google_login():
+async def google_login(request: Request):
     """Redirects the user to Google's SSO login page."""
+    # Build dynamic redirect URI based on how the user reached the server
+    callback_url = str(request.url_for("google_callback"))
+    
+    # If using reverse-proxy like Render, we must force https
+    if "localhost" not in callback_url:
+        callback_url = callback_url.replace("http://", "https://")
+    
+    sso.redirect_uri = callback_url
+    
     with sso:
         return await sso.get_login_redirect(params={"prompt": "consent", "access_type": "offline"})
 
