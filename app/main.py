@@ -28,7 +28,16 @@ async def lifespan(app: FastAPI):
     """Runs once when the server starts and stops."""
     # Create all database tables (if they don't exist)
     Base.metadata.create_all(bind=engine)
-    print("[STARTUP] Database tables created.")
+    
+    # Log database dialect to confirm what we're connected to
+    if settings.DATABASE_URL.startswith("postgresql"):
+        print(f"[STARTUP] Connected to POSTGRESQL database.")
+    elif settings.DATABASE_URL.startswith("sqlite"):
+        print(f"[STARTUP] Connected to SQLITE database. (Warning: Ephemeral on Render)")
+    else:
+        print(f"[STARTUP] Connected to database.")
+
+    print("[STARTUP] Database tables verified.")
 
     # Create uploads directory
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
