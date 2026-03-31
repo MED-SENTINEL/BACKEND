@@ -80,7 +80,6 @@ class ShareKeyResponse(BaseModel):
 class DoctorAccessResponse(BaseModel):
     """Schema for data returned to the DOCTOR after successful validation."""
     patient_profile: Any       # Patient profile dict
-    biometrics: list           # List of biometric readings
     lab_reports: list          # List of lab reports
     trauma_pins: list          # List of trauma pins
     permissions: str           # What level of access was granted

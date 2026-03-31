@@ -28,7 +28,6 @@ def get_timeline(patient_id: str, current_user: User = Depends(get_current_user)
 
     timeline = []
 
-    # Removed biometrics
 
     # Add lab reports (simplified — file info only)
     reports = db.query(LabReport).filter(LabReport.patient_id == patient_id).all()
@@ -62,7 +61,6 @@ def get_timeline(patient_id: str, current_user: User = Depends(get_current_user)
             },
         })
 
-    # Removed predictions
 
     # Sort by timestamp (newest first - descending)
     timeline.sort(key=lambda x: x["timestamp"], reverse=True)

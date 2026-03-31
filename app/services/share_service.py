@@ -56,7 +56,7 @@ def generate_share_key(
     return share_key
 
 
-def validate_share_key(db: Session, key: str, passcode: str) -> dict:
+def validate_share_key(db: Session, key: str, passcode: str, increment_usage: bool = True) -> dict:
     """
     Validate a share-key and passcode. If valid, return the patient's data.
     Raises ValueError on failure.
@@ -77,9 +77,10 @@ def validate_share_key(db: Session, key: str, passcode: str) -> dict:
     if hash_passcode(passcode) != share_key.passcode_hash:
         raise ValueError("Invalid passcode.")
 
-    # All checks passed — increment usage count
-    share_key.usage_count += 1
-    db.commit()
+    # All checks passed — increment usage count only if requested
+    if increment_usage:
+        share_key.usage_count += 1
+        db.commit()
 
     # Fetch patient data
     patient_id = share_key.patient_id
