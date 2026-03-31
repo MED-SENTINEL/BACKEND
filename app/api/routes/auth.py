@@ -29,8 +29,8 @@ router = APIRouter()
 sso = GoogleSSO(
     client_id=settings.GOOGLE_CLIENT_ID,
     client_secret=settings.GOOGLE_CLIENT_SECRET,
-    redirect_uri=f"http://localhost:8000/api/auth/google/callback",
-    allow_insecure_http=True # For local development
+    redirect_uri=f"{settings.BACKEND_URL}/api/auth/google/callback",
+    allow_insecure_http="localhost" in settings.BACKEND_URL
 )
 
 

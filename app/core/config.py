@@ -5,6 +5,11 @@ All settings for the application with environment variable support.
 
 import os
 import secrets
+from dotenv import load_dotenv
+
+# Load environment variables from .env file (if it exists)
+# This is safe for production because system environment variables take precedence.
+load_dotenv()
 
 
 class Settings:
@@ -31,6 +36,7 @@ class Settings:
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
     GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173") 
+    BACKEND_URL: str = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 
     # Email Verification
