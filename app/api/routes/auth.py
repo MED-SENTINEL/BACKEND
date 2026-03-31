@@ -209,7 +209,7 @@ async def google_login(request: Request):
     sso.redirect_uri = callback_url
     
     with sso:
-        return await sso.get_login_redirect(params={"prompt": "consent", "access_type": "offline"})
+        return await sso.get_login_redirect(params={"prompt": "select_account", "access_type": "offline"})
 
 
 @router.get("/google/callback", tags=["Google SSO"])
