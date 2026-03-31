@@ -15,7 +15,7 @@ load_dotenv()
 class Settings:
     """Application settings. Deployment-ready with environment variable support."""
 
-    APP_NAME: str = "SENTINEL Bio-Digital Twin API"
+    APP_NAME: str = "SENTINEL Medical Portal API"
     APP_VERSION: str = "0.2.0"
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
 
@@ -51,7 +51,22 @@ class Settings:
     SMTP_FROM: str = os.getenv("SMTP_FROM", "noreply@sentinel.dev")
 
     # CORS: Allow everything during deployment or restrict if needed
-    CORS_ORIGINS: list[str] = os.getenv("CORS_ORIGINS", "*").split(",")
+    # CORS: Dynamically allow local origins + your configured frontend origin.
+    _cors_env = os.getenv("CORS_ORIGINS", "")
+    CORS_ORIGINS: list[str] = _cors_env.split(",") if _cors_env else []
+    
+    # Always ensure local dev origins and your specific frontend URL are included.
+    _required_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    if os.getenv("FRONTEND_URL"):
+        _required_origins.append(os.getenv("FRONTEND_URL"))
+
+    for _o in _required_origins:
+        if _o and _o not in CORS_ORIGINS:
+            CORS_ORIGINS.append(_o)
+    
+    # If no origins specified at all, default to "*" (though allow_credentials will require specific)
+    if not CORS_ORIGINS:
+        CORS_ORIGINS = ["*"]
 
     # File uploads: where uploaded lab reports are saved
     UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "data/uploads")
