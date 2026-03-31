@@ -3,13 +3,17 @@ Share-Key endpoints.
 Protected with JWT authentication.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List
+import os
 
 from app.database import get_db
+from app.core.config import settings
 from app.core.security import get_current_user
 from app.models.share_key import ShareKey, ShareKeyCreate, ShareKeyValidate, ShareKeyResponse, DoctorAccessResponse
+from app.models.report import LabReport
 from app.models.user import User
 from app.services.share_service import generate_share_key, validate_share_key
 
@@ -57,6 +61,52 @@ def validate_key(share_key: str, data: ShareKeyValidate, db: Session = Depends(g
     try:
         result = validate_share_key(db, share_key, data.passcode)
         return result
+    except ValueError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+@router.get("/validate/{share_key}/file/{report_id}")
+def get_shared_file(
+    share_key: str,
+    report_id: str,
+    passcode: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """
+    GET /api/share/validate/{share_key}/file/{report_id}
+    Securely serves a specific report file to a provider using their access token.
+    No JWT needed, uses share_key + passcode for verification.
+    """
+    try:
+        # Validate the access token and passcode first, but don't count this as a new 'use'
+        validate_share_key(db, share_key, passcode, increment_usage=False)
+        
+        # Access is valid, now fetch the share key record to check ownership
+        key_record = db.query(ShareKey).filter(ShareKey.share_key == share_key).first()
+        
+        # Get the report and verify it belongs to the patient who shared the key
+        report = db.query(LabReport).filter(LabReport.id == report_id).first()
+        if not report:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        if report.patient_id != key_record.patient_id:
+            raise HTTPException(status_code=403, detail="Access denied to this specific record")
+
+        if not report.file_path or not os.path.exists(report.file_path):
+            raise HTTPException(status_code=404, detail="File missing on disk")
+
+        # Determine media type
+        media_type = "application/pdf"
+        if report.file_type in ["jpg", "jpeg"]:
+            media_type = "image/jpeg"
+        elif report.file_type == "png":
+            media_type = "image/png"
+
+        return FileResponse(
+            path=report.file_path,
+            media_type=media_type,
+            filename=report.file_name
+        )
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
 
