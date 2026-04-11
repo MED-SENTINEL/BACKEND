@@ -45,7 +45,7 @@ def create_trauma_pin(data: TraumaCreate, current_user: User = Depends(get_curre
     if not patient:
         raise HTTPException(status_code=404, detail=f"Patient '{data.patient_id}' not found")
 
-    valid_types = ["injury", "surgery", "psychological", "chronic_pain"]
+    valid_types = ["condition", "injury", "surgery", "psychological", "chronic_pain"]
     if data.trauma_type not in valid_types:
         raise HTTPException(status_code=400, detail=f"trauma_type must be one of: {valid_types}")
 
