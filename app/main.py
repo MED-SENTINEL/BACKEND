@@ -19,6 +19,8 @@ from app.models.profile import PatientProfile  # noqa: F401
 from app.models.report import LabReport  # noqa: F401
 from app.models.trauma import TraumaPin  # noqa: F401
 from app.models.share_key import ShareKey  # noqa: F401
+from app.models.ai_analysis import AIAnalysis  # noqa: F401
+from app.models.bloodwork import BloodworkEntry  # noqa: F401
 
 from contextlib import asynccontextmanager
 
@@ -38,6 +40,21 @@ async def lifespan(app: FastAPI):
         print(f"[STARTUP] Connected to database.")
 
     print("[STARTUP] Database tables verified.")
+
+    # ─── Lightweight migration: add new columns to existing tables ───
+    from sqlalchemy import text, inspect
+    with engine.connect() as conn:
+        inspector = inspect(engine)
+        # Add extracted_data column to lab_reports if missing
+        if "lab_reports" in inspector.get_table_names():
+            columns = [c["name"] for c in inspector.get_columns("lab_reports")]
+            if "extracted_data" not in columns:
+                try:
+                    conn.execute(text("ALTER TABLE lab_reports ADD COLUMN extracted_data TEXT"))
+                    conn.commit()
+                    print("[STARTUP] Migration: Added 'extracted_data' column to lab_reports.")
+                except Exception as e:
+                    print(f"[STARTUP] Migration skipped (may already exist): {e}")
 
     # Create uploads directory
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
@@ -109,6 +126,12 @@ app.include_router(share_router, prefix="/api/share", tags=["Share Keys"])
 
 from app.api.routes.timeline import router as timeline_router
 app.include_router(timeline_router, prefix="/api/timeline", tags=["Timeline"])
+
+from app.api.routes.ai import router as ai_router
+app.include_router(ai_router, prefix="/api/ai", tags=["AI Agents"])
+
+from app.api.routes.bloodwork import router as bloodwork_router
+app.include_router(bloodwork_router, prefix="/api/bloodwork", tags=["Bloodwork"])
 
 
 if __name__ == "__main__":

@@ -82,6 +82,9 @@ class DoctorAccessResponse(BaseModel):
     patient_profile: Any       # Patient profile dict
     lab_reports: list          # List of lab reports
     trauma_pins: list          # List of trauma pins
+    bloodwork: list = []       # List of bloodwork entries
+    health_insights: Any = None  # Latest AI health insights
     permissions: str           # What level of access was granted
     key_expires_at: datetime   # When this key expires
     usage_remaining: int       # How many more uses
+

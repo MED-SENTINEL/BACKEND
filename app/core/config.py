@@ -75,5 +75,11 @@ class Settings:
     USE_LIVE_OCR: bool = os.getenv("USE_LIVE_OCR", "False").lower() == "true"
     ENABLE_TELEGRAM: bool = os.getenv("ENABLE_TELEGRAM", "False").lower() == "true"
 
+    # Gemini AI
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+
+    # GitHub Models (fallback AI — uses GitHub Student/Copilot token)
+    GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
+
 
 settings = Settings()

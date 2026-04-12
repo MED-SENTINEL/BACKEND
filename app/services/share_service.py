@@ -4,6 +4,7 @@ Uses profile model for patient data in doctor access response.
 """
 
 import uuid
+import json
 import hashlib
 from datetime import datetime, timedelta
 
@@ -14,6 +15,8 @@ from app.models.user import User
 from app.models.profile import PatientProfile
 from app.models.report import LabReport
 from app.models.trauma import TraumaPin
+from app.models.bloodwork import BloodworkEntry
+from app.models.ai_analysis import AIAnalysis
 
 
 def hash_passcode(passcode: str) -> str:
@@ -77,15 +80,12 @@ def validate_share_key(db: Session, key: str, passcode: str, increment_usage: bo
     if hash_passcode(passcode) != share_key.passcode_hash:
         raise ValueError("Invalid passcode.")
 
-    # All checks passed — increment usage count only if requested
     if increment_usage:
         share_key.usage_count += 1
         db.commit()
 
-    # Fetch patient data
     patient_id = share_key.patient_id
 
-    # Get patient user + profile
     patient = db.query(User).filter(User.id == patient_id).first()
     profile = db.query(PatientProfile).filter(PatientProfile.user_id == patient_id).first()
 
@@ -103,9 +103,10 @@ def validate_share_key(db: Session, key: str, passcode: str, increment_usage: bo
         "current_medications": profile.current_medications if profile else None,
     }
 
-    # Fetch data based on permission scope
     lab_reports = []
     trauma_pins = []
+    bloodwork = []
+    health_insights = None
 
     if share_key.permissions in ("full", "labs_only"):
         report_records = (
@@ -123,6 +124,22 @@ def validate_share_key(db: Session, key: str, passcode: str, increment_usage: bo
                 "uploaded_at": str(r.uploaded_at),
             }
             for r in report_records
+        ]
+
+        bw_records = (
+            db.query(BloodworkEntry)
+            .filter(BloodworkEntry.patient_id == patient_id)
+            .order_by(BloodworkEntry.test_date.desc())
+            .all()
+        )
+        bloodwork = [
+            {
+                "id": b.id,
+                "test_date": str(b.test_date),
+                "label": b.label,
+                "values": json.loads(b.values_json) if b.values_json else {},
+            }
+            for b in bw_records
         ]
 
     if share_key.permissions == "full":
@@ -148,10 +165,24 @@ def validate_share_key(db: Session, key: str, passcode: str, increment_usage: bo
             for p in pin_records
         ]
 
+        latest_insight = (
+            db.query(AIAnalysis)
+            .filter(AIAnalysis.patient_id == patient_id, AIAnalysis.analysis_type == "insight")
+            .order_by(AIAnalysis.created_at.desc())
+            .first()
+        )
+        if latest_insight and latest_insight.result_json:
+            try:
+                health_insights = json.loads(latest_insight.result_json)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
     return {
         "patient_profile": patient_profile,
         "lab_reports": lab_reports,
         "trauma_pins": trauma_pins,
+        "bloodwork": bloodwork,
+        "health_insights": health_insights,
         "permissions": share_key.permissions,
         "key_expires_at": share_key.expires_at,
         "usage_remaining": share_key.max_uses - share_key.usage_count,
