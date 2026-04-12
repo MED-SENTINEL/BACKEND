@@ -21,6 +21,9 @@ from app.models.trauma import TraumaPin  # noqa: F401
 from app.models.share_key import ShareKey  # noqa: F401
 from app.models.ai_analysis import AIAnalysis  # noqa: F401
 from app.models.bloodwork import BloodworkEntry  # noqa: F401
+from app.models.doctor_profile import DoctorProfile  # noqa: F401
+from app.models.doctor_note import DoctorNote  # noqa: F401
+from app.models.access_log import AccessLog  # noqa: F401
 
 from contextlib import asynccontextmanager
 
@@ -53,6 +56,17 @@ async def lifespan(app: FastAPI):
                     conn.execute(text("ALTER TABLE lab_reports ADD COLUMN extracted_data TEXT"))
                     conn.commit()
                     print("[STARTUP] Migration: Added 'extracted_data' column to lab_reports.")
+                except Exception as e:
+                    print(f"[STARTUP] Migration skipped (may already exist): {e}")
+
+        # Add role column to users if missing (defaults to 'patient')
+        if "users" in inspector.get_table_names():
+            columns = [c["name"] for c in inspector.get_columns("users")]
+            if "role" not in columns:
+                try:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR DEFAULT 'patient' NOT NULL"))
+                    conn.commit()
+                    print("[STARTUP] Migration: Added 'role' column to users.")
                 except Exception as e:
                     print(f"[STARTUP] Migration skipped (may already exist): {e}")
 
@@ -133,6 +147,8 @@ app.include_router(ai_router, prefix="/api/ai", tags=["AI Agents"])
 from app.api.routes.bloodwork import router as bloodwork_router
 app.include_router(bloodwork_router, prefix="/api/bloodwork", tags=["Bloodwork"])
 
+from app.api.routes.doctor import router as doctor_router
+app.include_router(doctor_router, prefix="/api/doctor", tags=["Doctor"])
 
 if __name__ == "__main__":
     import uvicorn

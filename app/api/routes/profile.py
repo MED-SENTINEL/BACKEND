@@ -1,6 +1,6 @@
 """
-Patient Profile endpoints.
-Onboarding and profile management — collect medical data after registration.
+Patient & Doctor Profile endpoints.
+Onboarding and profile management — collect data after registration.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,35 +10,55 @@ from app.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.profile import PatientProfile, ProfileCreate, ProfileUpdate, ProfileResponse
+from app.models.doctor_profile import DoctorProfile, DoctorProfileCreate, DoctorProfileResponse
 
 router = APIRouter()
 
 
-@router.post("/onboard", response_model=ProfileResponse, status_code=201)
-def onboard(data: ProfileCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@router.post("/onboard", status_code=201)
+def onboard(data: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     POST /api/profile/onboard
-    Create the patient profile during onboarding.
-    Can only be called once per user. Marks user as onboarded.
+    Create the profile during onboarding.
+    Accepts an optional 'role' field to set the user's role (patient/doctor).
     """
-    # Check if profile already exists
-    existing = db.query(PatientProfile).filter(PatientProfile.user_id == current_user.id).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Profile already exists. Use PUT to update.")
+    # Allow role to be set during onboarding
+    chosen_role = data.pop("role", None)
+    if chosen_role in ("patient", "doctor"):
+        current_user.role = chosen_role
 
-    # Create profile
-    profile = PatientProfile(
-        user_id=current_user.id,
-        **data.model_dump(exclude_unset=True),
-    )
-    db.add(profile)
+    if current_user.role == "doctor":
+        # Doctor onboarding
+        existing = db.query(DoctorProfile).filter(DoctorProfile.user_id == current_user.id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Doctor profile already exists. Use PUT to update.")
 
-    # Mark user as onboarded
-    current_user.is_onboarded = True
-    db.commit()
-    db.refresh(profile)
+        doc_data = DoctorProfileCreate(**data)
+        profile = DoctorProfile(
+            user_id=current_user.id,
+            **doc_data.model_dump(exclude_unset=True),
+        )
+        db.add(profile)
+        current_user.is_onboarded = True
+        db.commit()
+        db.refresh(profile)
+        return profile
+    else:
+        # Patient onboarding (existing behavior)
+        existing = db.query(PatientProfile).filter(PatientProfile.user_id == current_user.id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Profile already exists. Use PUT to update.")
 
-    return profile
+        patient_data = ProfileCreate(**data)
+        profile = PatientProfile(
+            user_id=current_user.id,
+            **patient_data.model_dump(exclude_unset=True),
+        )
+        db.add(profile)
+        current_user.is_onboarded = True
+        db.commit()
+        db.refresh(profile)
+        return profile
 
 
 @router.get("/me", response_model=ProfileResponse)

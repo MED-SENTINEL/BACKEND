@@ -32,6 +32,7 @@ class User(Base):
 
     # Onboarding
     is_onboarded = Column(Boolean, default=False, nullable=False)
+    role = Column(String, nullable=False, default="patient")  # "patient" or "doctor"
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -43,6 +44,7 @@ class User(Base):
 class RegisterRequest(BaseModel):
     """Schema for user registration."""
     email: str
+    role: Optional[str] = "patient"  # "patient" or "doctor"
     password: str
     full_name: str
 
@@ -85,6 +87,7 @@ class MeResponse(BaseModel):
     id: str
     email: str
     full_name: str
+    role: str = "patient"
     is_verified: bool
     is_onboarded: bool
     created_at: datetime
@@ -105,6 +108,14 @@ class MeResponse(BaseModel):
     chronic_conditions: Optional[str] = None
     current_medications: Optional[str] = None
     past_surgeries: Optional[str] = None
+
+    # Doctor profile fields (only populated if role == "doctor")
+    specialty: Optional[str] = None
+    license_number: Optional[str] = None
+    hospital: Optional[str] = None
+    department: Optional[str] = None
+    years_of_experience: Optional[int] = None
+    bio: Optional[str] = None
 
     class Config:
         from_attributes = True

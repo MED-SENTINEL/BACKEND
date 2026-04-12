@@ -82,6 +82,16 @@ def validate_share_key(db: Session, key: str, passcode: str, increment_usage: bo
 
     if increment_usage:
         share_key.usage_count += 1
+
+        # Record access in audit log
+        from app.models.access_log import AccessLog
+        log_entry = AccessLog(
+            share_key_id=share_key.id,
+            patient_id=share_key.patient_id,
+            doctor_name=share_key.doctor_name,
+            action="view",
+        )
+        db.add(log_entry)
         db.commit()
 
     patient_id = share_key.patient_id

@@ -19,6 +19,7 @@ from app.core.security import (
 from app.core.config import settings
 from app.services.email_service import generate_verification_code, send_verification_email
 from app.models.profile import PatientProfile
+from app.models.doctor_profile import DoctorProfile
 
 from fastapi_sso.sso.google import GoogleSSO
 from starlette.requests import Request
@@ -58,6 +59,7 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
         email=req.email,
         password_hash=hash_password(req.password),
         full_name=req.full_name,
+        role=req.role if req.role in ("patient", "doctor") else "patient",
         is_verified=not settings.REQUIRE_VERIFICATION,
         verification_code=code,
         verification_expires_at=expires,
@@ -169,29 +171,44 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
         "id": current_user.id,
         "email": current_user.email,
         "full_name": current_user.full_name,
+        "role": current_user.role or "patient",
         "is_verified": current_user.is_verified,
         "is_onboarded": current_user.is_onboarded,
         "created_at": current_user.created_at,
         "updated_at": current_user.updated_at,
     }
 
-    # Merge profile data if it exists
-    profile = db.query(PatientProfile).filter(PatientProfile.user_id == current_user.id).first()
-    if profile:
-        data.update({
-            "gender": profile.gender,
-            "date_of_birth": profile.date_of_birth,
-            "blood_type": profile.blood_type,
-            "height_cm": profile.height_cm,
-            "weight_kg": profile.weight_kg,
-            "phone": profile.phone,
-            "address": profile.address,
-            "emergency_contact_name": profile.emergency_contact_name,
-            "emergency_contact_phone": profile.emergency_contact_phone,
-            "emergency_contact_relation": profile.emergency_contact_relation,
-            "allergies": profile.allergies,
-            "past_surgeries": profile.past_surgeries,
-        })
+    if current_user.role == "doctor":
+        # Merge doctor profile data
+        doc_profile = db.query(DoctorProfile).filter(DoctorProfile.user_id == current_user.id).first()
+        if doc_profile:
+            data.update({
+                "specialty": doc_profile.specialty,
+                "license_number": doc_profile.license_number,
+                "hospital": doc_profile.hospital,
+                "department": doc_profile.department,
+                "years_of_experience": doc_profile.years_of_experience,
+                "phone": doc_profile.phone,
+                "bio": doc_profile.bio,
+            })
+    else:
+        # Merge patient profile data
+        profile = db.query(PatientProfile).filter(PatientProfile.user_id == current_user.id).first()
+        if profile:
+            data.update({
+                "gender": profile.gender,
+                "date_of_birth": profile.date_of_birth,
+                "blood_type": profile.blood_type,
+                "height_cm": profile.height_cm,
+                "weight_kg": profile.weight_kg,
+                "phone": profile.phone,
+                "address": profile.address,
+                "emergency_contact_name": profile.emergency_contact_name,
+                "emergency_contact_phone": profile.emergency_contact_phone,
+                "emergency_contact_relation": profile.emergency_contact_relation,
+                "allergies": profile.allergies,
+                "past_surgeries": profile.past_surgeries,
+            })
 
     return data
 
