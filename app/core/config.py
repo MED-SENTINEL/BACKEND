@@ -21,22 +21,22 @@ class Settings:
 
     # Database: Use DATABASE_URL from environment (Supabase), fallback to SQLite
     # Note: SQLAlchemy requires postgresql:// instead of postgres://
-    raw_db_url = os.getenv("DATABASE_URL", "sqlite:///./sentinel.db")
+    raw_db_url = os.getenv("DATABASE_URL", "sqlite:///./sentinel.db").strip()
     if raw_db_url.startswith("postgres://"):
         DATABASE_URL: str = raw_db_url.replace("postgres://", "postgresql://", 1)
     else:
         DATABASE_URL: str = raw_db_url
 
     # JWT Authentication
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32)).strip()
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRY_MINUTES: int = int(os.getenv("JWT_EXPIRY_MINUTES", "10080"))  # 7 days
 
     # Google SSO
-    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
-    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
-    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173") 
-    BACKEND_URL: str = os.getenv("BACKEND_URL", "http://localhost:8000")
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173").strip()
+    BACKEND_URL: str = os.getenv("BACKEND_URL", "http://localhost:8000").strip()
 
 
     # Email Verification
@@ -44,11 +44,11 @@ class Settings:
     VERIFICATION_CODE_EXPIRY_MINUTES: int = 15
 
     # SMTP (optional — falls back to console logging if not set)
-    SMTP_HOST: str = os.getenv("SMTP_HOST", "")
-    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
-    SMTP_USER: str = os.getenv("SMTP_USER", "")
-    SMTP_PASS: str = os.getenv("SMTP_PASS", "")
-    SMTP_FROM: str = os.getenv("SMTP_FROM", "noreply@sentinel.dev")
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "").strip()
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587").strip())
+    SMTP_USER: str = os.getenv("SMTP_USER", "").strip()
+    SMTP_PASS: str = os.getenv("SMTP_PASS", "").strip()
+    SMTP_FROM: str = os.getenv("SMTP_FROM", "noreply@sentinel.dev").strip()
 
     # CORS: Allow everything during deployment or restrict if needed
     # CORS: Dynamically allow local origins + your configured frontend origin.
@@ -76,10 +76,10 @@ class Settings:
     ENABLE_TELEGRAM: bool = os.getenv("ENABLE_TELEGRAM", "False").lower() == "true"
 
     # Gemini AI
-    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "").strip()
 
     # GitHub Models (fallback AI — uses GitHub Student/Copilot token)
-    GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
+    GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "").strip()
 
 
 settings = Settings()
