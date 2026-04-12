@@ -9,6 +9,7 @@ import json
 import re
 import os
 import httpx
+from typing import Union
 
 from app.core.config import settings
 
@@ -91,7 +92,7 @@ def analyze_image(image_bytes: bytes, prompt: str, mime_type: str = "image/jpeg"
     return "{}"
 
 
-def parse_json_response(raw_text: str) -> dict | list:
+def parse_json_response(raw_text: str) -> Union[dict, list]:
     """
     Robustly extract JSON from text that may contain
     markdown fences, preamble text, or trailing commentary.
